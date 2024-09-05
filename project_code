@@ -1,0 +1,95 @@
+from bs4 import BeautifulSoup
+import requests
+import pandas as pd
+
+# Function to extract Book Title
+def get_title(soup):
+
+    try:
+        # Outer Tag Object
+        title_string = new_soup.find("h1", attrs={'class':'Text Text__title1'}).text.strip()
+        
+    except AttributeError:
+        title_string = ""
+
+    return title_string
+
+# Function to extract author name
+def get_author(soup):
+    try:
+        author = new_soup.find("span", attrs={'class':'ContributorLink__name'}).text.strip()
+
+    except AttributeError:
+        author = ""	
+
+    return author
+
+
+# Function to extract Book Rating
+def get_rating(soup):
+
+    try:
+        rating = new_soup.find("div", attrs={'class':'RatingStatistics__rating'}).text.strip()
+    
+    except AttributeError:
+        rating = ""	
+
+    return rating
+
+# Function to extract description of book
+def get_description(soup):
+    try:
+        description = new_soup.find("span", attrs={'class':'Formatted'}).text.strip()
+
+    except AttributeError:
+        description = ""	
+
+    return description
+
+# dictionary to store all the data
+Book_info = {"title":[],"author":[], "rating":[], "description":[],"URL":[]}
+# looping through multiple pages
+for i in range(1,7):
+    
+    # webpage url
+    url = f"https://www.goodreads.com/list/show/1230.Best_Gothic_Books_Of_All_Time?page={i}"
+
+    # adding user agent
+    HEADERS = ({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36', 'Accept-Language': 'en-US, en;q=0.5'})
+
+    # HTTP request
+    webpage = requests.get(url, headers = HEADERS)
+
+    # soup object containing all the data
+    soup = BeautifulSoup(webpage.content, "html.parser")
+
+    # extracting links of each book
+    links = soup.find_all("a", attrs={'class':'bookTitle'})
+
+    # stores the link
+    links_list = []
+
+     # Loop for extracting links
+    for link in links:
+            links_list.append(link.get('href'))
+
+    #loop for extracting details of each book on a particular page
+    for link in links_list:
+        new_webpage = requests.get("https://www.goodreads.com" + link, headers=HEADERS)
+
+        new_soup = BeautifulSoup(new_webpage.content, "html.parser")
+
+        # Function calls to add all the data
+        Book_info['title'].append(get_title(new_soup))
+        Book_info['author'].append(get_author(new_soup))
+        Book_info['rating'].append(get_rating(new_soup))
+        Book_info['description'].append(get_description(new_soup))
+
+        # storing URL
+        Book_info['URL'].append("https://www.goodreads.com" + link)
+
+
+
+# storing everthing in a dataframe and converting into a csv file
+book_df = pd.DataFrame.from_dict(Book_info)
+book_df.to_csv("book_data.csv", header=True, index=False)
